@@ -176,7 +176,7 @@ commands to load binaries from an SD card and flash them to the eMMC Boot0:
       => fatload mmc 1 ${loadaddr} u-boot.img
       => mmc write ${loadaddr} 0x1800 0x2000
 
-.. ifconfig:: CONFIG_part_variant in ('J721S2', 'AM62X', 'J784S4','J742S2', 'J722S')
+.. ifconfig:: CONFIG_part_variant in ('J721S2', 'AM62X', 'J784S4','J742S2', 'J722S', 'AM62PX', 'AM62AX')
 
    .. code-block:: console
 
@@ -188,7 +188,7 @@ commands to load binaries from an SD card and flash them to the eMMC Boot0:
       => fatload mmc 1 ${loadaddr} u-boot.img
       => mmc write ${loadaddr} 0x1400 0x2000
 
-.. ifconfig:: CONFIG_part_variant not in ('AM64X', 'J7200', 'J721S2', 'AM62X', 'J784S4','J742S2', 'J722S')
+.. ifconfig:: CONFIG_part_variant not in ('AM64X', 'J7200', 'J721S2', 'AM62X', 'J784S4','J742S2', 'J722S', 'AM62PX', 'AM62AX')
 
    .. code-block:: console
 
@@ -222,7 +222,7 @@ eMMC layout
       +----------------------------------+0x3A00   +-------------------------+
                    Boot0 (8 MB)                              UDA
 
-.. ifconfig:: CONFIG_part_variant in ('J721S2', 'AM62X')
+.. ifconfig:: CONFIG_part_variant in ('J721S2', 'AM62X', 'AM62PX', 'AM62AX')
 
    .. code-block:: text
 
@@ -237,9 +237,9 @@ eMMC layout
       +----------------------------------+0x3500   |                         |
       |   backup environment (128 KB)    |         |                         |
       +----------------------------------+0x3600   +-------------------------+
-            boot0 HW partition (8 MB)                     user partition
+                   Boot0 (8 MB)                              UDA
 
-.. ifconfig:: CONFIG_part_variant not in ('AM64X', 'J7200', 'J721S2', 'AM62X')
+.. ifconfig:: CONFIG_part_variant not in ('AM64X', 'J7200', 'J721S2', 'AM62X', 'AM62PX', 'AM62AX')
 
    .. code-block:: text
 
