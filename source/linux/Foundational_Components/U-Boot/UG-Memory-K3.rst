@@ -32,8 +32,8 @@ in: :ref:`flash-and-boot-to-uboot-prompt` using :command:`mmc dev 0` command.
 In u-boot environment, usually **mmcdev=n** is used to selct which MMC device to boot
 Linux from, where **n** is the device index.
 
-HW partitions explained
-=======================
+MMC HW partitions
+=================
 
 This sections includes a summary of MMC hardware partitions.
 
