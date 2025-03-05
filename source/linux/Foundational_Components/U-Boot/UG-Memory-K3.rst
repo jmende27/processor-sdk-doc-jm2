@@ -16,9 +16,9 @@ Listing MMC devices
 ===================
 
 Usually in all the platforms there will be two MMC instances of which one
-would be SD and the other would be eMMC. The index of them can vary from
-one class of platforms to the other. For a given platform, the device
-number: **mmcdev=[0:1]** can be found in the following way:
+would be SD and the other would be eMMC. The device index of them can vary from
+one class of platforms to the other. For a given platform, the device index
+can be found in the following way:
 
 .. code-block:: console
 
@@ -26,8 +26,31 @@ number: **mmcdev=[0:1]** can be found in the following way:
    sdhci@fa10000: 0 (eMMC)
    sdhci@fa00000: 1 (SD)
 
-The device number "**0**" for eMMC will be needed when flashing to the eMMC device
-in: :ref:`flash-and-boot-to-uboot-prompt`.
+The device index "**0**" for eMMC will be used when flashing to the eMMC device
+in: :ref:`flash-and-boot-to-uboot-prompt` using :command:`mmc dev 0` command.
+
+In u-boot environment, usually **mmcdev=n** is used to selct which MMC device to boot
+Linux from, where **n** is the device index.
+
+HW partitions explained
+=======================
+
+This sections includes a summary of MMC hardware partitions.
+
+eMMC
+----
+
+Normally eMMC is divided into 4 areas (aka HW partitions):
+
+- UDA (User Data Area): Used to store user data such as a file system. This partition can divided into several partitions
+- Boot0/1: Used to store firmware and data needed during boot
+- RPMB (Replay-protected memory-block area): Used to store secure data
+
+SD
+---
+
+SD card memory is not divided into sections like eMMC, but acts like UDA in eMMC where user can
+create partitions in software allowing to logically divide the storage space into multiple sections.
 
 .. _uboot-selecting-mmc-device-and-partitions:
 
@@ -41,16 +64,18 @@ The general syntax is:
 
    => mmc dev [dev] [partition]
 
+Where [dev] is the MMC device index.
+
 The following lists examples and their explanation for each MMC device
 and partitions according to the example in: :ref:`uboot-listing-mmc-devices`.
 
 .. code-block:: console
 
-   => mmc dev 0 0 # select eMMC user HW partition (UDA)
-   => mmc dev 0 1 # select eMMC boot0 HW partition
-   => mmc dev 0 2 # select eMMC boot1 HW partition
-   => mmc dev 1 1 # select SD "boot" partition
-   => mmc dev 1 2 # select SD "root" partition
+   => mmc dev 0 0 # select eMMC UDA
+   => mmc dev 0 1 # select eMMC Boot0
+   => mmc dev 0 2 # select eMMC Boot1
+   => mmc dev 1 1 # select SD first partition (typically named 'boot')
+   => mmc dev 1 2 # select SD second partition (typically named 'root')
 
 View MMC partition contents
 ===========================
@@ -66,7 +91,7 @@ boot the device.
    :ref:`formatting-mmc-partition-from-linux` before proceeding to look at the
    eMMC partition contents.
 
-To verify partitions in any MMC device from u-boot prompt, use the
+To list software created partitions for any MMC device from u-boot prompt, use the
 command: :command:`mmc part`.
 
 .. code-block:: console
@@ -123,10 +148,9 @@ Where the general syntax is:
 Flash and boot SPL from eMMC
 ============================
 
-The K3 based processors supports and recommends booting from the eMMC
-boot0/1 HW partitions. In the following example, we use the :command:`fatload`
-and :command:`mmc write` commands to load binaries from an SD card and write
-them to the eMMC boot0 HW partition:
+The K3 based processors supports and recommends booting from the eMMC Boot0/1.
+In the following example, we use the :command:`fatload` and :command:`mmc write`
+commands to load binaries from an SD card and flash them to the eMMC Boot0:
 
 .. ifconfig:: CONFIG_part_variant in ('AM64X')
 
@@ -196,7 +220,7 @@ eMMC layout
       +----------------------------------+0x3900   |                         |
       |   backup environment (128 KB)    |         |                         |
       +----------------------------------+0x3A00   +-------------------------+
-            boot0 HW partition (8 MB)                     user partition
+                   Boot0 (8 MB)                              UDA
 
 .. ifconfig:: CONFIG_part_variant in ('J721S2', 'AM62X')
 
@@ -233,7 +257,7 @@ eMMC layout
       +----------------------------------+0x3600   |                         |
       |          sysfw (1 MB)            |         |                         |
       +----------------------------------+0x3E00   +-------------------------+
-            boot0 HW partition (8 MB)                     user partition
+                   Boot0 (8 MB)                              UDA
 
 eMMC boot configuration
 -----------------------
@@ -250,16 +274,18 @@ set using the :command:`mmc bootbus` and :command:`mmc partconf` commands.
 
    $ mmc partconf <dev> [[varname] | [<boot_ack> <boot_partition> <partition_access>]]
 
+Where <dev> is MMC device index.
+
 - For more information on these commands, please refer to: `MMC CMD <https://docs.u-boot.org/en/latest/usage/cmd/mmc.html//>`__.
 
-**Boot from boot0 HW partition of eMMC:**
+**Boot from Boot0 of eMMC:**
 
 .. code-block:: console
 
    => mmc partconf 0 1 1 1
    => mmc bootbus 0 2 0 0
 
-**Boot from boot1 HW hardware partition of eMMC:**
+**Boot from Boot1 of eMMC:**
 
 .. code-block:: console
 
@@ -268,10 +294,10 @@ set using the :command:`mmc bootbus` and :command:`mmc partconf` commands.
 
 .. note::
 
-   When booting from boot1 HW partition, make sure to flash the partition using:
+   When booting from Boot1 HW partition, make sure to flash the partition using:
    :samp:`mmc dev 0 2`.
 
-**Boot from UDA HW partition of eMMC:**
+**Boot from UDA of eMMC:**
 
 .. code-block:: console
 
@@ -298,7 +324,7 @@ following command:
 Boot Linux from eMMC
 ====================
 
-To flash & boot the rootfs from eMMC UDA HW partition, first prepare UDA:
+To flash & boot the rootfs from eMMC UDA, first prepare UDA:
 :ref:`create-partitions-in-emmc-uda-from-linux`. The new software partition then
 needs to be formatted as a ext4 filesystem: :ref:`formatting-mmc-partition-from-linux`,
 and then the rootfs has to be written. It is not possible to format a partition to ext4
@@ -316,7 +342,7 @@ To boot Linux from eMMC, use the following commands after flashing rootfs to UDA
 Flashing an MMC device using USB-DFU
 ====================================
 
-To flash the eMMC device (boot0 HW partition) using USB-DFU, the device should
+To flash the eMMC device (Boot0) using USB-DFU, the device should
 be booted to u-boot prompt and a USB cable connected from the host machine
 to the device USB port configured to USB peripheral mode.
 
@@ -327,8 +353,10 @@ From u-boot prompt execute the following:
    => setenv dfu_alt_info ${dfu_alt_info_emmc}
    => dfu 0 mmc 0
 
-and on the host machine have the bootloader binaries ready to flash
-to eMMC boot0 HW partition. Execute the :command:`dfu-util` to transfer
+This comands assumes eMMC device exists and is mmc device 0.
+
+On the host machine have the bootloader binaries ready to flash
+to eMMC Boot0. Execute the :command:`dfu-util` to transfer
 files to the device. The general syntax for dfu-util command is:
 
 .. code-block:: console
