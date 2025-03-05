@@ -489,7 +489,7 @@ Create software partitions in eMMC UDA
 In eMMC, the User Data Area (UDA) HW partition is the primary storage
 space generally used to flash the rootfs. To prepare the UDA, use
 the :command:`fdisk` command. For ex: :samp:`fdisk /dev/mmcblkN` in
-which **N** is 0 or 1. To find which integer is eMMC use the command
+which **N** is 0 or 1. To find which device index is eMMC use the command
 :command:`lsblk`, like so:
 
 .. code-block:: console
@@ -506,9 +506,21 @@ which **N** is 0 or 1. To find which integer is eMMC use the command
 Where the eMMC will have hardware partitions :file:`mmcblkNboot0`
 and :file:`mmcblkNboot1`. The :file:`mmcblkN` is the eMMC device.
 
-Now we use :samp:`fdisk /dev/mmcblk0` to create one software partition
+Now we can use :samp:`fdisk /dev/mmcblk0` to create software partitions
 in UDA. For documentation on using fdisk, please go to:
 `fdisk how-to <https://tldp.org/HOWTO/Partition/fdisk_partitioning.html>`__.
+
+.. _create-boot-partition-in-emmc-uda-from-linux:
+
+Create boot partition
+=====================
+
+
+.. _create-root-partition-in-emmc-uda-from-linux:
+
+Create root partition
+=====================
+
 
 .. _formatting-mmc-partition-from-linux:
 
@@ -524,30 +536,17 @@ The general syntax for formatting disk partitions in Linux is:
 
    mkfs [options] [-t type fs-options] device [size]
 
-For example, to format a partition in eMMC UDA to ext4 file system:
+.. _format-partition-vfat:
+
+Format partition to vfat type
+===================
 
 .. code-block:: console
 
-   root@<machine>:~# lsblk
-   NAME         MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
-   mmcblk0      179:0    0 14.8G  0 disk
-   `-mmcblk0p1  179:1    0 14.8G  0 part /run/media/mmcblk0p1
-   mmcblk0boot0 179:32   0 31.5M  1 disk
-   mmcblk0boot1 179:64   0 31.5M  1 disk
-   mmcblk1      179:96   0 14.8G  0 disk
-   |-mmcblk1p1  179:97   0  128M  0 part /run/media/boot-mmcblk1p1
-   `-mmcblk1p2  179:98   0  8.8G  0 part /
-   root@<machine>:~# umount /run/media/mmcblk0p1
-   [   43.648532] EXT4-fs (mmcblk0p1): unmounting filesystem f8ecc7b8-ab1a-4240-ab4b-470d242c0539.
-   root@<machine>:~# mkfs -t ext4 /dev/mmcblk0p1
-   mke2fs 1.47.0 (5-Feb-2023)
-   Discarding device blocks: done
-   Creating filesystem with 3884800 4k blocks and 972944 inodes
-   Filesystem UUID: 842929dd-4e57-47b6-afa1-c03abc3100b1
-   Superblock backups stored on blocks:
-      32768, 98304, 163840, 229376, 294912, 819200, 884736, 1605632, 2654208
+.. _format-partition-ext4:
 
-   Allocating group tables: done
-   Writing inode tables: done
-   Creating journal (16384 blocks): done
-   Writing superblocks and filesystem accounting information: done
+Format to ext4 type
+===================
+
+.. code-block:: console
+

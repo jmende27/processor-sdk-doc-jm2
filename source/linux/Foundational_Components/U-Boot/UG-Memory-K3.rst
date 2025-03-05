@@ -27,7 +27,7 @@ can be found in the following way:
    sdhci@fa00000: 1 (SD)
 
 The device index "**0**" for eMMC will be used when flashing to the eMMC device
-in: :ref:`flash-and-boot-to-uboot-prompt` using :command:`mmc dev 0` command.
+in: :ref:`uboot-emmc-flash-and-boot-to-uboot-prompt` using :command:`mmc dev 0` command.
 
 In u-boot environment, usually **mmcdev=n** is used to selct which MMC device to boot
 Linux from, where **n** is the device index.
@@ -85,11 +85,10 @@ boot the device.
 
 .. note::
 
-   For eMMC, typically, the device ships without a partition table If there is
-   a need to create a partition in UDA (to flash the rootfs), please go to:
-   :ref:`create-partitions-in-emmc-uda-from-linux` and format the partition:
-   :ref:`formatting-mmc-partition-from-linux` before proceeding to look at the
-   eMMC partition contents.
+   For eMMC, typically, the device ships without a partition table If there is a need to
+   create a partition in UDA, please go to: :ref:`create-partitions-in-emmc-uda-from-linux`
+   and format the partition: :ref:`formatting-mmc-partition-from-linux` before proceeding
+   to view eMMC partition contents.
 
 To list software created partitions for any MMC device from u-boot prompt, use the
 command: :command:`mmc part`.
@@ -143,14 +142,55 @@ Where the general syntax is:
 
    $ ls <interface> [<dev[:partition]> [directory]]
 
-.. _flash-and-boot-to-uboot-prompt:
+MMC supported boot modes
+========================
 
-Flash and boot SPL from eMMC
-============================
+For complete information on the MMC boot modes supported by master ROM, please refer to the device
+specific TRM, under: Initialization/Boot Mode Pins.
 
-The K3 based processors supports and recommends booting from the eMMC Boot0/1.
-In the following example, we use the :command:`fatload` and :command:`mmc write`
-commands to load binaries from an SD card and flash them to the eMMC Boot0:
+The master ROM supports the following MMC bootmodes:
+
+eMMC boot
+---------
+
+This boot mode is a special boot mode specific to eMMC device. In this boot mode, master ROM cannot
+boot from SD and can only boot from Boot0 or Boot1 in eMMC. Please refer to :ref:`uboot-emmc-boot` for
+a step-by-step guide to boot with this bootmode.
+
+MMCSD boot
+----------
+
+This boot mode allows to boot from either eMMC or SD device. With this boot mode, master ROM can
+only boot from SD card or UDA in eMMC. Master ROM allows to boot in RAW or FS mode, FS mode being
+the recommended option and hence will have a subsequent guide to boot using this mode. Configuration
+for selecting MMC device and RAW/FS mode, is done with boot mode pins, please refer to TRM for this
+setup. To boot from eMMC UDA in FS mode, please refer to :ref:`uboot-mmcsd-boot-uda-fs-mode`.
+
+.. _uboot-emmc-flash-and-boot-to-uboot-prompt:
+
+EMMC: Flash and boot to uboot prompt
+====================================
+
+.. _uboot-emmc-boot:
+
+eMMC boot
+---------
+
+The K3 based processors support and recommends using **eMMC boot** bootmode from Boot0/1.
+To boot with **eMMC boot** the eMMC needs to be prepared before hand. The recommended process
+is to flash an SD card with TI SDK image and boot the board in **MMCSD** bootmode (from SD in
+FS mode) and boot to u-boot prompt, then proceed to flash eMMC:
+
+In the following example, we use the :command:`fatload` and :command:`mmc write` commands
+to load binaries from an SD card and flash them to eMMC Boot0. Note, to flash Boot1 instead,
+replace :command:`mmc dev 0 1` with :command:`mmc dev 0 2`.
+
+.. ifconfig:: CONFIG_part_variant in ('AM62LX')
+
+   .. note::
+
+      For am62lx device there is an errata for booting with **eMMC boot** bootmode: `<https://www.ti.com/lit/pdf/sprz582//>`__,
+      hence it is recommended to boot with **MMCSD** boot mode: :ref:`uboot-mmcsd-boot-uda-fs-mode`.
 
 .. ifconfig:: CONFIG_part_variant in ('AM64X')
 
@@ -202,6 +242,39 @@ commands to load binaries from an SD card and flash them to the eMMC Boot0:
       => fatload mmc 1 ${loadaddr} sysfw.itb
       => mmc write ${loadaddr} 0x3600 0x800
 
+eMMC boot configuration
+```````````````````````
+
+After flashing bootloader binaries to eMMC flash, the eMMC device Extended CSD register fields:
+BUS_WIDTH and PARTITION_CONFIG must be configured. These bits can be configured as shown in
+:ref:`here <uboot-emmc-boot0-config>` if using Boot0 and :ref:`here <uboot-emmc-boot1-config>` if
+using Boot1. This is required in order for master ROM to use the correct configuration when using
+**eMMC boot** bootmode. Lastly, proceed to change boot pins to **eMMC boot** bootmode and power
+cycle the board.
+
+.. _uboot-mmcsd-boot-uda-fs-mode:
+
+MMCSD boot mode from UDA in FS mode
+-----------------------------------
+
+The K3 based processors supports booting from the eMMC UDA in FS mode. To boot with **MMCSD**
+bootmode from eMMC UDA in fs mode, the eMMC needs to be prepared before hand. The recommended
+process is to flash an SD card with TI SDK image and boot the board in **MMCSD** bootmode (from
+SD in FS mode) and boot to Linux prompt. In Linux, create a "boot" partition as shown
+:ref:`here <create-boot-partition-in-emmc-uda-from-linux>`, format the new partition as shown
+:ref:`here <format-partition-vfat>`, mount the new partition, and copy the bootloader binaries
+to the new partition. Next, umount the partition and reboot the board to configure booting from
+eMMC UDA from u-boot prompt.
+
+MMCSD boot configuration from UDA in FS mode
+````````````````````````````````````````````
+
+After flashing bootloader binaries to eMMC flash, the eMMC device Extended CSD register fields:
+BUS_WIDTH and PARTITION_CONFIG must be configured. These bits can be configured as shown in
+:ref:`here <uboot-emmc-uda-config>`. This is required in order for master ROM to use the correct
+configuration when using **MMCSD** bootmode. Lastly, proceed to change boot pins to **MMCSD**
+bootmode [Select configuration for eMMC (port 0) and FS mode] and power off and on the board.
+
 eMMC layout
 -----------
 
@@ -213,7 +286,7 @@ eMMC layout
       |      tiboot3.bin (1 MB)          |         |                         |
       +----------------------------------+0x800    |                         |
       |       tispl.bin (2 MB)           |         |                         |
-      +----------------------------------+0x1800   |        rootfs           |
+      +----------------------------------+0x1800   |                         |
       |       u-boot.img (4 MB)          |         |                         |
       +----------------------------------+0x3800   |                         |
       |      environment (128 KB)        |         |                         |
@@ -230,7 +303,7 @@ eMMC layout
       |      tiboot3.bin (1 MB)          |         |                         |
       +----------------------------------+0x400    |                         |
       |       tispl.bin (2 MB)           |         |                         |
-      +----------------------------------+0x1400   |        rootfs           |
+      +----------------------------------+0x1400   |                         |
       |       u-boot.img (4 MB)          |         |                         |
       +----------------------------------+0x3400   |                         |
       |      environment (128 KB)        |         |                         |
@@ -248,7 +321,7 @@ eMMC layout
       |      tiboot3.bin (512 KB)        |         |                         |
       +----------------------------------+0x400    |                         |
       |       tispl.bin (2 MB)           |         |                         |
-      +----------------------------------+0x1400   |        rootfs           |
+      +----------------------------------+0x1400   |                         |
       |       u-boot.img (4 MB)          |         |                         |
       +----------------------------------+0x3400   |                         |
       |      environment (128 KB)        |         |                         |
@@ -259,10 +332,12 @@ eMMC layout
       +----------------------------------+0x3E00   +-------------------------+
                    Boot0 (8 MB)                              UDA
 
-eMMC boot configuration
------------------------
+.. _uboot-boot-emmc-config:
 
-To boot from any eMMC, the master (ROM) will require some configuration which can be
+Boot eMMC configuration
+------------------------
+
+To boot from an eMMC, the master ROM will require some configuration which can be
 set using the :command:`mmc bootbus` and :command:`mmc partconf` commands.
 
 - The :command:`mmc bootbus` command sets the BOOT_BUS_WIDTH field where :command:`mmc bootbus 0 2 0 0`
@@ -278,39 +353,44 @@ Where <dev> is MMC device index.
 
 - For more information on these commands, please refer to: `MMC CMD <https://docs.u-boot.org/en/latest/usage/cmd/mmc.html//>`__.
 
-**Boot from Boot0 of eMMC:**
+.. _uboot-emmc-boot0-config:
+
+Boot from eMMC Boot0
+`````````````````````
 
 .. code-block:: console
 
    => mmc partconf 0 1 1 1
    => mmc bootbus 0 2 0 0
 
-**Boot from Boot1 of eMMC:**
+.. _uboot-emmc-boot1-config:
+
+Boot from eMMC Boot1
+````````````````````
 
 .. code-block:: console
 
    => mmc partconf 0 1 2 1
    => mmc bootbus 0 2 0 0
 
-.. note::
+.. _uboot-emmc-uda-config:
 
-   When booting from Boot1 HW partition, make sure to flash the partition using:
-   :samp:`mmc dev 0 2`.
-
-**Boot from UDA of eMMC:**
+Boot from eMMC UDA
+```````````````````
 
 .. code-block:: console
 
    => mmc partconf 0 1 7 1
    => mmc bootbus 0 2 0 0
 
-**Enable warm reset**
+Enable warm reset
+`````````````````
 
 On eMMC devices, warm reset will not work if EXT_CSD[162] bit is unset since the
 reset input signal will be ignored. Warm reset is required to be enabled in order
-for the eMMC to be in a "clean state" on power-on reset so that ROM can do a clean
-enumeration. To set the EXT_CSD[162] bit, stop at u-boot prompt and execute the
-following command:
+for the eMMC to be in a "clean state" on power-on reset so that master ROM can do
+a clean enumeration. To set the EXT_CSD[162] bit, stop at u-boot prompt and execute
+the following command:
 
 .. code-block:: console
 
@@ -324,12 +404,12 @@ following command:
 Boot Linux from eMMC
 ====================
 
-To flash & boot the rootfs from eMMC UDA, first prepare UDA:
-:ref:`create-partitions-in-emmc-uda-from-linux`. The new software partition then
-needs to be formatted as a ext4 filesystem: :ref:`formatting-mmc-partition-from-linux`,
-and then the rootfs has to be written. It is not possible to format a partition to ext4
-in U-Boot. The Linux kernel image and DT are expected to be present in the /boot folder
-of rootfs.
+To flash & boot the rootfs from eMMC UDA, first create a partition to flash the rootfs:
+as shown :ref:`here <create-root-partition-in-emmc-uda-from-linux>`. The new software
+partition then needs to be formatted as ext4 type as shown :ref:`here <format-partition-ext4>`,
+and then the rootfs has to be flashed. It is not possible to format a partition to ext4
+in U-Boot. The Linux kernel Image and DT are expected to be present in the /boot folder
+of the "root" partition in order for u-boot to find and load these.
 
 To boot Linux from eMMC, use the following commands after flashing rootfs to UDA:
 
